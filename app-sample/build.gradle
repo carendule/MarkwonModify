@@ -1,7 +1,7 @@
 apply plugin: 'com.android.application'
 apply plugin: 'kotlin-android'
 apply plugin: 'kotlin-kapt'
-apply plugin: 'kotlin-parcelize'
+apply plugin: 'kotlin-android-extensions'
 
 def gitSha = { ->
     def output = new ByteArrayOutputStream()
@@ -14,9 +14,8 @@ def gitSha = { ->
 
 android {
 
-    namespace = "io.noties.markwon.app"
-
     compileSdkVersion config['compile-sdk']
+    buildToolsVersion config['build-tools']
 
     defaultConfig {
         applicationId 'io.noties.markwon.app'
@@ -27,23 +26,30 @@ android {
 
         resConfig 'en'
 
-        base.archivesName = "markwon"
+        setProperty("archivesBaseName", "markwon")
 
         buildConfigField 'String', 'GIT_SHA', "\"${gitSha()}\""
         buildConfigField 'String', 'GIT_REPOSITORY', '"https://github.com/noties/Markwon"'
 
         final def scheme = 'markwon'
         buildConfigField 'String', 'DEEPLINK_SCHEME', "\"$scheme\""
-        manifestPlaceholders += ['deeplink_scheme': scheme]
+        manifestPlaceholders += [
+                'deeplink_scheme': scheme
+        ]
+    }
+
+    dexOptions {
+        preDexLibraries true
+        javaMaxHeapSize '5g'
     }
 
     compileOptions {
-        targetCompatibility = rootProject.ext.get("target_java_version")
-        sourceCompatibility = rootProject.ext.get("compatible_java_version")
+        targetCompatibility JavaVersion.VERSION_1_8
+        sourceCompatibility JavaVersion.VERSION_1_8
     }
 
     kotlinOptions {
-        jvmTarget = rootProject.ext.get("target_java_version_for_kotlin")
+        jvmTarget = "1.8"
     }
 
     sourceSets {
@@ -54,17 +60,45 @@ android {
 
     // do not sign in CI
     if (!project.hasProperty('CI')) {
+        signingConfigs {
+            config {
 
-        buildTypes {
-            release {
-                signingConfig = signingConfigs.debug
+                final def keystoreFile = project.file('keystore.jks')
+                final def keystoreFilePassword = 'MARKWON_KEYSTORE_FILE_PASSWORD'
+                final def keystoreAlias = 'MARKWON_KEY_ALIAS'
+                final def keystoreAliasPassword = 'MARKWON_KEY_ALIAS_PASSWORD'
+
+                final def properties = [
+                        keystoreFilePassword,
+                        keystoreAlias,
+                        keystoreAliasPassword
+                ]
+
+                if (!keystoreFile.exists()) {
+                    throw new IllegalStateException("No '${keystoreFile.name}' file is found.")
+                }
+
+                final def missingProperties = properties.findAll { !project.hasProperty(it) }
+                if (!missingProperties.isEmpty()) {
+                    throw new IllegalStateException("Missing required signing properties: $missingProperties")
+                }
+
+                storeFile keystoreFile
+                storePassword project[keystoreFilePassword]
+
+                keyAlias project[keystoreAlias]
+                keyPassword project[keystoreAliasPassword]
             }
         }
-    }
 
-    buildFeatures {
-        buildConfig = true
-        viewBinding = true
+        buildTypes {
+            debug {
+                signingConfig signingConfigs.config
+            }
+            release {
+                signingConfig signingConfigs.config
+            }
+        }
     }
 }
 
@@ -74,43 +108,59 @@ kapt {
     }
 }
 
+androidExtensions {
+    features = ["parcelize"]
+}
+
+configurations.all {
+    exclude group: 'org.jetbrains', module: 'annotations-java5'
+}
+
 dependencies {
     kapt project(':sample-utils:processor')
-    kapt (libs.prism4j.bundler)
+    deps['annotationProcessor'].with {
+        kapt it['prism4j-bundler']
+    }
+
+    implementation "org.jetbrains.kotlin:kotlin-stdlib-jdk7:$kotlin_version"
 
     implementation project(':markwon-core')
-    implementation project(':markwon-ext:markwon-editor')
-    implementation project(':markwon-ext:markwon-ext-latex')
-    implementation project(':markwon-ext:markwon-ext-strikethrough')
-    implementation project(':markwon-ext:markwon-ext-tables')
-    implementation project(':markwon-ext:markwon-ext-tasklist')
-    implementation project(':markwon-ext:markwon-html')
-    implementation project(':markwon-ext:markwon-image')
-    implementation project(':markwon-ext:markwon-inline-parser')
-    implementation project(':markwon-ext:markwon-linkify')
-    implementation project(':markwon-ext:markwon-recycler')
-    implementation project(':markwon-ext:markwon-recycler-table')
-    implementation project(':markwon-ext:markwon-simple-ext')
-    implementation project(':markwon-ext:markwon-syntax-highlight')
+    implementation project(':markwon-editor')
+    implementation project(':markwon-ext-latex')
+    implementation project(':markwon-ext-strikethrough')
+    implementation project(':markwon-ext-tables')
+    implementation project(':markwon-ext-tasklist')
+    implementation project(':markwon-html')
+    implementation project(':markwon-image')
+    implementation project(':markwon-inline-parser')
+    implementation project(':markwon-linkify')
+    implementation project(':markwon-recycler')
+    implementation project(':markwon-recycler-table')
+    implementation project(':markwon-simple-ext')
+    implementation project(':markwon-syntax-highlight')
 
-    implementation project(':markwon-ext:markwon-image-picasso')
-    implementation project(':markwon-ext:markwon-image-glide')
-    implementation project(':markwon-ext:markwon-image-coil')
+    implementation project(':markwon-image-picasso')
+    implementation project(':markwon-image-glide')
+    implementation project(':markwon-image-coil')
 
-//        implementation libs.x.appcompat
-    implementation libs.x.recyclerview
-    implementation libs.x.cardview
-    implementation libs.x.fragment
-    implementation libs.okhttp
-    implementation (libs.prism4j)
-    implementation libs.gson
-    implementation libs.adapt
-    implementation libs.debug
-    implementation libs.android.svg
-    implementation libs.android.gif.impl
-    implementation libs.coil
+    deps.with {
+//        implementation it['x-appcompat']
+        implementation it['x-recycler-view']
+        implementation it['x-cardview']
+        implementation it['x-fragment']
+        implementation it['okhttp']
+        implementation it['prism4j']
+        implementation it['gson']
+        implementation it['adapt']
+        implementation it['debug']
+        implementation it['android-svg']
+        implementation it['android-gif-impl']
+        implementation it['coil']
+    }
 
-    testImplementation libs.junit
-    testImplementation libs.robolectric
-    testImplementation libs.mockito
+    deps['test'].with {
+        testImplementation it['junit']
+        testImplementation it['robolectric']
+        testImplementation it['mockito']
+    }
 }

@@ -2,35 +2,37 @@ apply plugin: 'com.android.library'
 
 android {
 
-    namespace = 'io.noties.markwon'
     compileSdkVersion config['compile-sdk']
+    buildToolsVersion config['build-tools']
 
     defaultConfig {
         minSdkVersion config['min-sdk']
         targetSdkVersion config['target-sdk']
+        versionCode 1
+        versionName version
     }
-
-    compileOptions {
-        targetCompatibility = rootProject.ext.get("target_java_version")
-        sourceCompatibility = rootProject.ext.get("compatible_java_version")
-    }}
+}
 
 dependencies {
 
-    api libs.x.annotations
-    api libs.commonmark
+    deps.with {
+        api it['x-annotations']
+        api it['commonmark']
 
-    // @since 4.1.0 to allow PrecomputedTextSetterCompat
-    // note that this dependency must be added on a client side explicitly
-    compileOnly libs.x.core
-    compileOnly libs.x.appcompat
+        // @since 4.1.0 to allow PrecomputedTextSetterCompat
+        // note that this dependency must be added on a client side explicitly
+        compileOnly it['x-core']
+        compileOnly it['x-appcompat']
+    }
 
     testImplementation project(':markwon-test-span')
-    testImplementation libs.commons.io
+    testImplementation deps['commons-io']
 
-    testImplementation libs.junit
-    testImplementation libs.robolectric
-    testImplementation libs.mockito
+    deps['test'].with {
+        testImplementation it['junit']
+        testImplementation it['robolectric']
+        testImplementation it['mockito']
+    }
 }
 
 registerArtifact(this)

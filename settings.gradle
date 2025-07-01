@@ -18,5 +18,4 @@ include ':markwon-core',
         ':markwon-ext:markwon-syntax-highlight',
         ':markwon-test-span'
 
-include ':app-sample'
 include ':sample-utils:processor'

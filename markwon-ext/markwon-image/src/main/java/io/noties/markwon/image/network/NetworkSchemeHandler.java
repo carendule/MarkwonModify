@@ -85,7 +85,7 @@ public class NetworkSchemeHandler extends SchemeHandler {
         return imageItem;
     }
 
-    private WithDecodingNeeded onAsyncRequestImage(@NonNull String imgUrl, @Nullable ImageLoadedNotifier notifier){
+    private WithDecodingNeeded onAsyncRequestImage(@NonNull final String imgUrl, @Nullable final ImageLoadedNotifier notifier){
         WithDecodingNeeded previousItem = cachedImageItems.get(imgUrl);
         if (previousItem != null) {
             if (previousItem.isProcessing()) return previousItem;
@@ -95,7 +95,12 @@ public class NetworkSchemeHandler extends SchemeHandler {
             cachedImageItems.put(imgUrl, previousItem);
         }
         final WithDecodingNeeded tempItem = previousItem;
-        requestExecutor.submit(() -> doAsyncRequest(imgUrl, tempItem, notifier));
+        requestExecutor.submit(new Runnable() {
+            @Override
+            public void run() {
+                doAsyncRequest(imgUrl, tempItem, notifier);
+            }
+        });
         return previousItem;
     }
 

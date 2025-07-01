@@ -1,0 +1,21 @@
+apply plugin: 'maven-publish' // 确保应用了 maven-publish 插件
+
+// 确保每个模块的 artifactId 是唯一的
+// 通常使用 project.name，如果你的模块名有下划线或连字符，Maven 会自动处理
+def artifactId = project.name.replace(':', '-').replace('_', '-')
+
+afterEvaluate {
+    publishing {
+        publications {
+            release(MavenPublication) { // 定义一个名为 'release' 的发布
+                groupId = group
+                artifactId = artifactId
+                version = version
+
+                // 对于 Android Library，推荐使用 from components.release
+                // 它会自动处理 AAR 文件和所有的传递性依赖
+                from components.release
+            }
+        }
+    }
+}

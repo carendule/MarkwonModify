@@ -80,7 +80,12 @@ class AsyncDrawableLoaderImpl extends AsyncDrawableLoader {
 
     @NonNull
     private Future<?> execute(@NonNull final AsyncDrawable asyncDrawable) {
-        return executorService.submit(() -> doLoadDrawable(asyncDrawable));
+        return executorService.submit(new Runnable() {
+            @Override
+            public void run() {
+                doLoadDrawable(asyncDrawable);
+            }
+        });
     }
 
     @WorkerThread
@@ -112,27 +117,40 @@ class AsyncDrawableLoaderImpl extends AsyncDrawableLoader {
             ImageItem imageItem = schemeHandler.prefetch(destination, uri);
             if(imageItem == null){
                 shouldMarkRequesting = true;
-                imageItem = schemeHandler.handle(destination, uri, (item,success) -> {
-                    if(item == null) return;
-                    if(!success) return;
-                    if(!item.hasDecodingNeeded()){
-                        doLoadDrawable(asyncDrawable);
-                        return;
-                    }
+                imageItem = schemeHandler.handle(destination, uri, new ImageLoadedNotifier() {
+                    @Override
+                    public void doNotifyUI(@Nullable ImageItem item, boolean success) {
+                        {
+                            if(item == null) return;
+                            if(!success) return;
+                            if(!item.hasDecodingNeeded()){
+                                doLoadDrawable(asyncDrawable);
+                                return;
+                            }
 
-                    final Drawable resDrawable = proceedAndDecodeImage(item.getAsWithDecodingNeeded(), destination);
-                    if (resDrawable == null){
-                        handler.postAtTime(() -> requests.remove(asyncDrawable), asyncDrawable, SystemClock.uptimeMillis());
-                        return;
-                    }
+                            final Drawable resDrawable = proceedAndDecodeImage(item.getAsWithDecodingNeeded(), destination);
+                            if (resDrawable == null){
+                                handler.postAtTime(new Runnable() {
+                                    @Override
+                                    public void run() {
+                                        requests.remove(asyncDrawable);
+                                    }
+                                }, asyncDrawable, SystemClock.uptimeMillis());
+                                return;
+                            }
 
-                    DrawableUtils.ensureBounds(resDrawable);
-                    handler.postAtTime(() -> {
-                        final Future<?> future = requests.remove(asyncDrawable);
-                        if (future != null && asyncDrawable.isAttached()) {
-                            asyncDrawable.setResult(resDrawable);
+                            DrawableUtils.ensureBounds(resDrawable);
+                            handler.postAtTime(new Runnable() {
+                                @Override
+                                public void run() {
+                                    final Future<?> future = requests.remove(asyncDrawable);
+                                    if (future != null && asyncDrawable.isAttached()) {
+                                        asyncDrawable.setResult(resDrawable);
+                                    }
+                                }
+                            }, asyncDrawable, SystemClock.uptimeMillis());
                         }
-                    }, asyncDrawable, SystemClock.uptimeMillis());
+                    }
                 });
             }
 
@@ -161,14 +179,17 @@ class AsyncDrawableLoaderImpl extends AsyncDrawableLoader {
 
         if(shouldMarkRequesting) return;
 
-        handler.postAtTime(() -> {
-            // validate that
-            // * request was not cancelled
-            // * out-result is present
-            // * async-drawable is attached
-            final Future<?> future = requests.remove(asyncDrawable);
-            if (future != null && out != null && asyncDrawable.isAttached()) {
-                asyncDrawable.setResult(out);
+        handler.postAtTime(new Runnable() {
+            @Override
+            public void run() {
+                // validate that
+                // * request was not cancelled
+                // * out-result is present
+                // * async-drawable is attached
+                final Future<?> future = requests.remove(asyncDrawable);
+                if (future != null && out != null && asyncDrawable.isAttached()) {
+                    asyncDrawable.setResult(out);
+                }
             }
         }, asyncDrawable, SystemClock.uptimeMillis());
 
@@ -184,7 +205,7 @@ class AsyncDrawableLoaderImpl extends AsyncDrawableLoader {
 
 
         // @since 4.6.2 close input stream
-        try (imgInputStream) {
+        try {
             if (imgInputStream == null) {
                 throw new IllegalStateException("image still in requesting: " + destination);
             }
@@ -201,8 +222,17 @@ class AsyncDrawableLoaderImpl extends AsyncDrawableLoader {
                 // throw that no media decoder is found
                 throw new IllegalStateException("No media-decoder is found: " + destination);
             }
-        } catch (IOException e) {
+        } catch (Exception e) {
             Log.e("MARKWON-IMAGE", "Error closing inputStream", e);
+        }finally {
+            // 确保无论是否发生异常都会关闭流
+            if (imgInputStream != null) {
+                try {
+                    imgInputStream.close();
+                } catch (IOException e) {
+                    Log.e("MARKWON-IMAGE", "Error closing inputStream", e);
+                }
+            }
         }
 
         return resDrawable;

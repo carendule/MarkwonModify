@@ -1,33 +1,37 @@
 apply plugin: 'com.android.library'
 
 android {
-    namespace = 'io.noties.markwon.image'
 
     compileSdkVersion config['compile-sdk']
+    buildToolsVersion config['build-tools']
 
     defaultConfig {
         minSdkVersion config['min-sdk']
         targetSdkVersion config['target-sdk']
+        versionCode 1
+        versionName version
     }
-
-    compileOptions {
-        targetCompatibility = rootProject.ext.get("target_java_version")
-        sourceCompatibility = rootProject.ext.get("compatible_java_version")
-    }}
+}
 
 dependencies {
 
     api project(':markwon-core')
 
-    compileOnly  libs.android.gif.impl
-    compileOnly  libs.android.svg
-    compileOnly libs.okhttp
-    testImplementation libs.commons.io
+    deps.with {
+        compileOnly it['android-gif']
+        compileOnly it['android-svg']
+        compileOnly it['okhttp']
+    }
 
     testImplementation project(':markwon-test-span')
-    testImplementation libs.junit
-    testImplementation libs.robolectric
-    testImplementation libs.mockito
+    testImplementation deps['commons-io']
+
+    deps['test'].with {
+
+        testImplementation it['junit']
+        testImplementation it['robolectric']
+        testImplementation it['mockito']
+    }
 }
 
 registerArtifact(this)

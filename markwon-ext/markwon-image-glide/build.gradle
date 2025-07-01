@@ -1,23 +1,21 @@
 apply plugin: 'com.android.library'
 
 android {
-    namespace = 'io.noties.markwon.image.glide'
 
     compileSdkVersion config['compile-sdk']
+    buildToolsVersion config['build-tools']
 
     defaultConfig {
         minSdkVersion config['min-sdk']
         targetSdkVersion config['target-sdk']
+        versionCode 1
+        versionName version
     }
-
-    compileOptions {
-        targetCompatibility = rootProject.ext.get("target_java_version")
-        sourceCompatibility = rootProject.ext.get("compatible_java_version")
-    }}
+}
 
 dependencies {
     api project(':markwon-core')
-    api  libs.glide
+    api deps['glide']
 }
 
 registerArtifact(this)

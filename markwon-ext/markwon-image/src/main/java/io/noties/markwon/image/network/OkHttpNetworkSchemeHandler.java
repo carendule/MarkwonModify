@@ -65,7 +65,7 @@ public class OkHttpNetworkSchemeHandler extends SchemeHandler {
         }
     }
 
-    private ImageItem.WithDecodingNeeded doAsyncRequest(String imgUrl,@Nullable ImageLoadedNotifier notifier){
+    private ImageItem.WithDecodingNeeded doAsyncRequest(final String imgUrl, @Nullable final ImageLoadedNotifier notifier){
         ImageItem.WithDecodingNeeded previousItem = imgPathMap.get(imgUrl);
         if (previousItem != null) {
             if (previousItem.isProcessing()) return previousItem;

@@ -32,7 +32,6 @@ import io.noties.markwon.image.AsyncDrawableSpan;
 import io.noties.markwon.image.DrawableUtils;
 import io.noties.markwon.image.ImageSizeResolver;
 import io.noties.markwon.inlineparser.MarkwonInlineParserPlugin;
-import kotlin.jvm.Volatile;
 import ru.noties.jlatexmath.JLatexMathDrawable;
 
 /**
@@ -411,7 +410,7 @@ public class JLatexMathPlugin extends AbstractMarkwonPlugin {
     static class JLatexAsyncDrawableLoader extends AsyncDrawableLoader {
         private final Config config;
         private final Handler handler = new Handler(Looper.getMainLooper());
-        @Volatile
+
         private final Map<AsyncDrawable, Future<?>> cache = new HashMap<>(3);
 
         JLatexAsyncDrawableLoader(@NonNull Config config) {
