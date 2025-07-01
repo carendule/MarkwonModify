@@ -4,8 +4,6 @@ import android.content.Context;
 import android.text.Spanned;
 import android.widget.TextView;
 
-import androidx.annotation.NonNull;
-
 import org.commonmark.ext.gfm.tables.TableBlock;
 import org.commonmark.ext.gfm.tables.TableBody;
 import org.commonmark.ext.gfm.tables.TableCell;
@@ -19,11 +17,13 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
+import androidx.annotation.NonNull;
 import io.noties.markwon.AbstractMarkwonPlugin;
 import io.noties.markwon.MarkwonVisitor;
 import io.noties.markwon.SpannableBuilder;
 
 /**
+ * 表格
  * @since 3.0.0
  */
 public class TablePlugin extends AbstractMarkwonPlugin {
@@ -65,6 +65,10 @@ public class TablePlugin extends AbstractMarkwonPlugin {
         this.visitor = new TableVisitor(tableTheme);
     }
 
+    public void setMaxWidth(int maxWidth) {
+        visitor.setMaxWidth(maxWidth);
+    }
+
     @NonNull
     public TableTheme theme() {
         return theme;
@@ -103,9 +107,14 @@ public class TablePlugin extends AbstractMarkwonPlugin {
         private List<TableRowSpan.Cell> pendingTableRow;
         private boolean tableRowIsHeader;
         private int tableRows;
+        private int maxWidth;
 
         TableVisitor(@NonNull TableTheme tableTheme) {
             this.tableTheme = tableTheme;
+        }
+
+        void setMaxWidth(int maxWidth) {
+            this.maxWidth = maxWidth;
         }
 
         void clear() {
@@ -207,7 +216,8 @@ public class TablePlugin extends AbstractMarkwonPlugin {
                         tableTheme,
                         pendingTableRow,
                         tableRowIsHeader,
-                        tableRows % 2 == 1);
+                        tableRows % 2 == 1,
+                        maxWidth);
 
                 tableRows = tableRowIsHeader
                         ? 0

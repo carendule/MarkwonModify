@@ -1,20 +1,124 @@
-apply plugin: 'maven-publish' // 确保应用了 maven-publish 插件
+// local-aar-gradle.gradle
 
-// 确保每个模块的 artifactId 是唯一的
-// 通常使用 project.name，如果你的模块名有下划线或连字符，Maven 会自动处理
-def artifactId = project.name.replace(':', '-').replace('_', '-')
+apply plugin: 'maven-publish'
 
-afterEvaluate {
+// --------------------------------------------------------------------------------
+// !!! 重要：请先替换以下 GitHub 相关的配置变量 !!!
+// --------------------------------------------------------------------------------
+
+// 您的 GitHub 用户名或组织名。例如，如果您的 GitHub 主页是 github.com/octocat，则为 'octocat'。
+// 这通常也应该匹配您的 'group' 定义，例如 'com.github.octocat'。
+def githubOwner = 'carendule' // !!! 替换为您的 GitHub 用户名或组织名 !!!
+
+// 您的 Android 库项目所在的 GitHub 仓库名称。例如，如果仓库 URL 是 github.com/myorg/my-android-library，则为 'my-android-library'。
+def githubRepoName = 'MarkwonModify' // !!! 替换为您的 GitHub 仓库的名称 !!!
+
+// --------------------------------------------------------------------------------
+// 如果您想重新定义 group 和 version，可以在这里定义（或者在主 module 的 build.gradle 中定义）
+// group = 'com.github.' + githubOwner // 推荐的 GitHub Packages group 格式
+// version = '1.0.0' // 您的版本号，每次发布新版本时递增
+// --------------------------------------------------------------------------------
+
+afterEvaluate { project ->
+
+    // 确保这是一个 Android library 模块 (因为我们发布的是 AAR)
+    if (!project.plugins.hasPlugin('com.android.library')) {
+        logger.warn("Project ${project.name} is not an Android Library, skipping Maven publication configuration in local-aar-gradle.gradle")
+        return
+    }
+
+    // --- 1. 定义 Javadoc 和 Source Jar Tasks ---
+    // 这些任务保持不变，与旧版本类似，但需要确保它们的输出能够被 publishing 块引用。
+
+    // Javadoc 任务
+    task androidJavadocs(type: Javadoc) {
+        source = android.sourceSets.main.java.srcDirs // 指定源代码目录
+        classpath += project.files(android.getBootClasspath().join(File.pathSeparator)) // 添加 Android Bootclasspath
+        // 添加 Android 兼容性选项，避免 Javadoc 编译错误
+        options.addStringOption('-Xdoclint:none', '-quiet') // 禁用 doclint 检查，减少不必要的警告
+        options.encoding = 'UTF-8' // 设置编码
+        failOnError = false // 不因为警告而失败
+    }
+
+    // Javadoc Jar 任务
+    task androidJavadocsJar(type: Jar) {
+        from androidJavadocs.destinationDir // 从 Javadoc 生成目录打包
+        classifier = 'javadoc' // 设置分类器
+        dependsOn androidJavadocs // 依赖 Javadoc 任务
+    }
+
+    // Source Jar 任务
+    task androidSourcesJar(type: Jar) {
+        from android.sourceSets.main.java.srcDirs // 从源代码目录打包
+        classifier = 'sources' // 设置分类器
+    }
+
+    // --- 2. 配置 publishing 块 ---
     publishing {
         publications {
-            release(MavenPublication) { // 定义一个名为 'release' 的发布
-                groupId = group
-                artifactId = artifactId
-                version = version
-
-                // 对于 Android Library，推荐使用 from components.release
-                // 它会自动处理 AAR 文件和所有的传递性依赖
+            // 定义一个 MavenPublication，用于发布 Android Library 的 release 构建产物
+            release(MavenPublication) {
+                // from components.release 是关键！它告诉 Maven Publish 插件：
+                // 使用 Android Gradle Plugin 为 'release' variant 生成的 AAR 和 POM 信息。
                 from components.release
+
+                // 添加我们上面定义的 Javadoc 和 Source Jar
+                artifact androidSourcesJar
+                artifact androidJavadocsJar
+
+                // 配置 POM 元数据
+                // !!! 注意：这里的 POM_NAME, POM_URL 等变量需要确保在外部（例如主 module 的 build.gradle）有定义
+                // 或者在这里硬编码具体的值。
+                pom {
+                    name = POM_NAME // 例如: "My Awesome Android Library"
+                    packaging = POM_PACKAGING // 通常 for AARs would be 'aar', but components.release handles this
+                    description = POM_DESCRIPTION // 例如: "A robust library for ... features."
+                    url = POM_URL // 例如: "https://github.com/${githubOwner}/${githubRepoName}"
+
+                    // SCM (Source Code Management) 信息
+                    scm {
+                        // !!!! 替换为您的 GitHub 仓库的实际 SCM URL !!!
+                        url = "https://github.com/${githubOwner}/${githubRepoName}" // 例如: "https://github.com/YourOrg/YourRepo"
+                        connection = "scm:git:git://github.com/${githubOwner}/${githubRepoName}.git" // 例如: "scm:git:git://github.com/YourOrg/YourRepo.git"
+                        developerConnection = "scm:git:ssh://github.com/${githubOwner}/${githubRepoName}.git" // 例如: "scm:git:ssh://github.com/YourOrg/YourRepo.git"
+                    }
+
+                    // 许可证信息
+                    licenses {
+                        license {
+                            name = POM_LICENCE_NAME // 例如: "The Apache Software License, Version 2.0"
+                            url = POM_LICENCE_URL // 例如: "http://www.apache.org/licenses/LICENSE-2.0.txt"
+                            distribution = POM_LICENCE_DIST // 例如: "repo"
+                        }
+                    }
+
+                    // 开发者信息
+                    developers {
+                        developer {
+                            id = POM_DEVELOPER_ID // 例如: "yourdeveloperid"
+                            name = POM_DEVELOPER_NAME // 例如: "Your Developer Name"
+                            // email = POM_DEVELOPER_EMAIL // 如果有，也可以添加 email
+                        }
+                    }
+                }
+            }
+        }
+
+        // --- 3. 配置仓库 (GitHub Packages Maven Repository) ---
+        repositories {
+            maven {
+                name = "GitHubPackages"
+                // GitHub Packages 的 URL 格式: https://maven.pkg.github.com/<owner>/<repoName>
+                // 使用我们上面定义的 githubOwner 和 githubRepoName 变量
+                url = uri("https://maven.pkg.github.com/${githubOwner}/${githubRepoName}")
+
+                // 认证信息
+                credentials {
+                    // 优先使用 GitHub Actions 自动注入的环境变量 GITHUB_ACTOR (用户名) 和 GITHUB_TOKEN (PAT)
+                    // 如果在本地测试，会尝试从 ~/.gradle/gradle.properties 读取 gpr.user 和 gpr.key
+                    username = System.getenv("GITHUB_ACTOR") ?: project.findProperty("gpr.user") as String
+                    password = System.getenv("GITHUB_TOKEN") ?: project.findProperty("gpr.key") as String
+                }
             }
         }
     }

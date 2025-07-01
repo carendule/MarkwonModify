@@ -331,9 +331,9 @@ public class JLatexMathPlugin extends AbstractMarkwonPlugin {
         private ExecutorService executorService;
 
         @LatexParseStyle
-        private int inlineStyle = LatexParseStyle.STYLE_BRACKETS;
+        private int inlineStyle = LatexParseStyle.STYLE_SLASH_SQUARE_BRACKETS;
         @LatexParseStyle
-        private int blockStyle = LatexParseStyle.STYLE_BRACKETS;
+        private int blockStyle = LatexParseStyle.STYLE_SLASH_SQUARE_BRACKETS;
 
         Builder(@NonNull JLatexMathTheme.Builder builder) {
             this.theme = builder;
@@ -410,7 +410,6 @@ public class JLatexMathPlugin extends AbstractMarkwonPlugin {
     static class JLatexAsyncDrawableLoader extends AsyncDrawableLoader {
         private final Config config;
         private final Handler handler = new Handler(Looper.getMainLooper());
-
         private final Map<AsyncDrawable, Future<?>> cache = new HashMap<>(3);
 
         JLatexAsyncDrawableLoader(@NonNull Config config) {

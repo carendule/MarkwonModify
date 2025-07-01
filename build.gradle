@@ -52,8 +52,7 @@ ext {
             'build-tools'    : '29.0.3',
             'compile-sdk'    : 29,
             'target-sdk'     : 29,
-            'min-sdk'        : 16,
-            'push-aar-gradle': 'https://raw.githubusercontent.com/noties/gradle-mvn-push/master/gradle-mvn-push-aar.gradle'
+            'min-sdk'        : 16
     ]
 
     final def commonMarkVersion = '0.13.0'
@@ -125,11 +124,7 @@ def registerArtifact(project) {
             ext.NEXUS_PASSWORD = System.getenv('NEXUS_PASSWORD')
         }
 
-        if (VERSION_NAME.contains('CH')) {
-            project.apply from: "$rootDir/local-aar-gradle.gradle"
-        }else {
-            project.apply from: config['push-aar-gradle']
-        }
+        project.apply from: "$rootDir/local-aar-gradle.gradle"
 
     }
 

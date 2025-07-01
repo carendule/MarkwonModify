@@ -19,9 +19,10 @@ class JLatexMathInlineProcessor extends InlineProcessor {
     public JLatexMathInlineProcessor(@LatexParseStyle int parseStyle) {
         this.parseStyle = parseStyle;
     }
-//    private static final Pattern RE4StyleDollar = Pattern.compile("(\\${2})(.+?)\\1");
-    private static final Pattern RE4StyleDollar = Pattern.compile("(?<!\\\\)(\\$+)(.+?)(?<!\\\\)\\1");
-    private static final Pattern RE4StyleBracket = Pattern.compile("\\\\\\(([\\s\\S]+?)\\\\\\)|\\\\\\[([\\s\\S]+?)\\\\\\]");
+
+    private static final Pattern RE4Style2Dollar = Pattern.compile("(\\${2})([\\s\\S]+?)\\1");
+    private static final Pattern RE4StyleSlashDollar = Pattern.compile("\\\\\\$([\\s\\S]+?)\\\\\\$");
+    private static final Pattern RE4StyleSlashSBracket = Pattern.compile("\\\\\\(([\\s\\S]+?)\\\\\\)");
 
     @Override
     public char specialCharacter() {
@@ -41,16 +42,26 @@ class JLatexMathInlineProcessor extends InlineProcessor {
     }
 
     private Pattern mapStyle2Pattern(){
-        if (parseStyle == LatexParseStyle.STYLE_DOLLAR) {
-            return RE4StyleDollar;
+        switch (parseStyle){
+            case LatexParseStyle.STYLE_2_DOLLAR:
+                return RE4Style2Dollar;
+
+            case LatexParseStyle.STYLE_SLASH_DOLLAR:
+                return RE4StyleSlashDollar;
+
+            default:
+                return RE4StyleSlashSBracket;
         }
-        return RE4StyleBracket;
     }
 
     private char mapStyle2SpecialChar(){
-        if (parseStyle == LatexParseStyle.STYLE_BRACKETS) {
-            return '\\';
+        switch (parseStyle){
+            case LatexParseStyle.STYLE_SLASH_DOLLAR:
+            case LatexParseStyle.STYLE_SLASH_SQUARE_BRACKETS:
+                return '\\';
+
+            default:
+                return '$';
         }
-        return '$';
     }
 }

@@ -9,19 +9,21 @@ import android.text.Layout;
 import android.text.Spannable;
 import android.text.SpannableString;
 import android.text.Spanned;
+import android.text.SpannedString;
 import android.text.StaticLayout;
 import android.text.TextPaint;
 import android.text.style.ReplacementSpan;
-
-import androidx.annotation.IntDef;
-import androidx.annotation.IntRange;
-import androidx.annotation.NonNull;
-import androidx.annotation.Nullable;
+import android.util.Log;
 
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
 import java.util.ArrayList;
 import java.util.List;
+
+import androidx.annotation.IntDef;
+import androidx.annotation.IntRange;
+import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
 
 import io.noties.markwon.core.spans.TextLayoutSpan;
 import io.noties.markwon.image.AsyncDrawable;
@@ -30,7 +32,7 @@ import io.noties.markwon.utils.LeadingMarginUtils;
 import io.noties.markwon.utils.SpanUtils;
 
 public class TableRowSpan extends ReplacementSpan {
-
+    private static final String TAG = "TableRowSpan";
     public static final int ALIGN_LEFT = 0;
     public static final int ALIGN_CENTER = 1;
     public static final int ALIGN_RIGHT = 2;
@@ -79,6 +81,7 @@ public class TableRowSpan extends ReplacementSpan {
     private final TextPaint textPaint;
     private final boolean header;
     private final boolean odd;
+    private final int maxWidth;
 
     private final Rect rect = new Rect();
     private final Paint paint = new Paint(Paint.ANTI_ALIAS_FLAG);
@@ -92,12 +95,25 @@ public class TableRowSpan extends ReplacementSpan {
             @NonNull List<Cell> cells,
             boolean header,
             boolean odd) {
+        this(theme, cells, header, odd, 0);
+    }
+
+    public TableRowSpan(
+            @NonNull TableTheme theme,
+            @NonNull List<Cell> cells,
+            boolean header,
+            boolean odd,
+            int maxWidth) {
         this.theme = theme;
         this.cells = cells;
         this.layouts = new ArrayList<>(cells.size());
         this.textPaint = new TextPaint();
         this.header = header;
         this.odd = odd;
+        this.width = maxWidth;
+        this.maxWidth = 0;
+        this.textPaint.setTextSize(36);
+        makeNewLayouts();
     }
 
     @Override
@@ -137,6 +153,12 @@ public class TableRowSpan extends ReplacementSpan {
             }
         }
 
+        if (paint instanceof TextPaint) { // there must be a reason why this method receives Paint instead of TextPaint...
+            textPaint.set((TextPaint) paint);
+        } else {
+            textPaint.set(paint);
+        }
+
         return width;
     }
 
@@ -152,18 +174,24 @@ public class TableRowSpan extends ReplacementSpan {
             int bottom,
             @NonNull Paint p) {
 
-        final int spanWidth = SpanUtils.width(canvas, text);
-        if (recreateLayouts(spanWidth)) {
-            width = spanWidth;
-            // @since 4.3.1 it's important to cast to TextPaint in order to display links, etc
-            if (p instanceof TextPaint) {
-                // there must be a reason why this method receives Paint instead of TextPaint...
-                textPaint.set((TextPaint) p);
-            } else {
-                textPaint.set(p);
-            }
-            makeNewLayouts();
-        }
+
+        final int spanWidth = maxWidth != 0 ? maxWidth : SpanUtils.width(canvas, text);
+
+
+        Log.d(TAG, "textPaint.getTextSize() = " + textPaint.getTextSize());
+
+//        if (recreateLayouts(spanWidth)) {
+//            Log.e(TAG, "width = " + width + " spanWidth = " + spanWidth);
+//            width = spanWidth;
+//            // @since 4.3.1 it's important to cast to TextPaint in order to display links, etc
+//            if (p instanceof TextPaint) {
+//                // there must be a reason why this method receives Paint instead of TextPaint...
+//                textPaint.set((TextPaint) p);
+//            } else {
+//                textPaint.set(p);
+//            }
+//            makeNewLayouts();
+//        }
 
         int maxHeight = 0;
 
