@@ -33,7 +33,7 @@ class JLatexMathInlineProcessor extends InlineProcessor {
     protected Node parse() {
 
         final String latex = match(mapStyle2Pattern());
-        if (latex == null) {
+        if (latex == null || latex.length() < 4) {
             return null;
         }
 
