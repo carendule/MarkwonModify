@@ -1,5 +1,7 @@
 package io.noties.markwon.ext.latex;
 
+import android.util.Log;
+
 import androidx.annotation.Nullable;
 
 import org.commonmark.node.Node;
@@ -33,11 +35,17 @@ class JLatexMathInlineProcessor extends InlineProcessor {
     protected Node parse() {
 
         final String latex = match(mapStyle2Pattern());
-        if (latex == null || latex.length() < 4) {
+        int styleLength;
+        if (parseStyle == LatexParseStyle.STYLE_DOLLAR) {
+            styleLength = 1;
+        }else {
+            styleLength = 2;
+        }
+        if (latex == null || latex.length() < styleLength * 2) {
             return null;
         }
-
-        return new JLatexMathNode(latex.substring(2, latex.length() - 2));
+//        Log.d("conor.latexMatcher",latex + " ,after:" + after);
+        return new JLatexMathNode(latex.substring(styleLength, latex.length() - styleLength));
     }
 
     private Pattern mapStyle2Pattern(){
