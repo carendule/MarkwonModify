@@ -64,13 +64,22 @@ public class AsyncDrawableSpan extends ReplacementSpan {
 
             final Rect rect = drawable.getBounds();
 
-//            if (fm != null) {
-//                fm.ascent = -rect.bottom;
-//                fm.descent = 0;
-//
-//                fm.top = fm.ascent;
-//                fm.bottom = 0;
-//            }
+            if (fm != null) {
+                if (replacementTextIsLink) {
+                    fm.ascent = -rect.bottom;
+                    fm.descent = 0;
+
+                    fm.top = fm.ascent;
+                    fm.bottom = 0;
+                }else  {
+                    // 我们希望公式底部与文本基线对齐，所以它需要的 ascent 是 -rect.bottom
+                    final int imageAscent = -rect.bottom;
+                    // 为了不缩小行高，我们要取当前文本的 ascent 和公式需要的 ascent 中更小（更负）的那个
+                    fm.ascent = Math.min(fm.ascent, imageAscent);
+                    // 同理，取更大的 top 值
+                    fm.top = Math.min(fm.top, fm.ascent);
+                }
+            }
 
             size = rect.right;
 
