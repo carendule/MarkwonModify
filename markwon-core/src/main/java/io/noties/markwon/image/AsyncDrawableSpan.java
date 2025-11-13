@@ -32,17 +32,19 @@ public class AsyncDrawableSpan extends ReplacementSpan {
     private final AsyncDrawable drawable;
     private final int alignment;
     private final boolean replacementTextIsLink;
+    private final boolean cacheAbleSpan;
 
     public AsyncDrawableSpan(
             @NonNull MarkwonTheme theme,
             @NonNull AsyncDrawable drawable,
             @Alignment int alignment,
-            boolean replacementTextIsLink) {
+            boolean replacementTextIsLink,
+            boolean cacheAbleSpan) {
         this.theme = theme;
         this.drawable = drawable;
         this.alignment = alignment;
         this.replacementTextIsLink = replacementTextIsLink;
-
+        this.cacheAbleSpan = cacheAbleSpan;
         // @since 4.2.1 we do not set intrinsic bounds
         //  at this point they will always be 0,0-1,1, but this
         //  will trigger another invalidation when we will have bounds
@@ -155,6 +157,10 @@ public class AsyncDrawableSpan extends ReplacementSpan {
     @NonNull
     public AsyncDrawable getDrawable() {
         return drawable;
+    }
+
+    public boolean isCacheAbleSpan() {
+        return cacheAbleSpan;
     }
 
     private static float textCenterY(int top, int bottom, @NonNull Paint paint) {

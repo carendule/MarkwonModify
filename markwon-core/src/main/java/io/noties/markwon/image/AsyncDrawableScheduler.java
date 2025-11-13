@@ -48,7 +48,7 @@ public abstract class AsyncDrawableScheduler {
 
                     @Override
                     public void onViewDetachedFromWindow(View v) {
-                        unschedule(textView);
+                        unschedule(textView, true);
                         v.removeOnAttachStateChangeListener(this);
                         v.setTag(R.id.markwon_drawables_scheduler, null);
                     }
@@ -64,13 +64,21 @@ public abstract class AsyncDrawableScheduler {
 
             for (AsyncDrawableSpan span : spans) {
                 drawable = span.getDrawable();
+                if (span.isCacheAbleSpan() && drawable.isAttached()) {
+                    //可缓存的span且不是第一次load，则不重复加载
+                    continue;
+                }
                 drawable.setCallback2(new DrawableCallbackImpl(textView, invalidator, drawable.getBounds()));
             }
         }
     }
 
+    public static void unschedule(@NonNull TextView textView) {
+        unschedule(textView, false);
+    }
+
     // must be called when text manually changed in TextView
-    public static void unschedule(@NonNull TextView view) {
+    public static void unschedule(@NonNull TextView view, boolean detaching) {
 
         // @since 4.0.0
         if (view.getTag(R.id.markwon_drawables_scheduler_last_text_hashcode) == null) {
@@ -83,6 +91,16 @@ public abstract class AsyncDrawableScheduler {
         if (spans != null
                 && spans.length > 0) {
             for (AsyncDrawableSpan span : spans) {
+                //可缓存的Span，在View销毁时再通知撤销
+                if (span.isCacheAbleSpan()) {
+                    boolean isViewAttached = view.getWindowToken() != null;
+                    if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.KITKAT) {
+                        isViewAttached = isViewAttached || view.isAttachedToWindow();
+                    }
+                    if (isViewAttached && !detaching) {
+                        continue;
+                    }
+                }
                 span.getDrawable().setCallback2(null);
             }
         }
